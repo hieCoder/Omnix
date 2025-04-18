@@ -1,0 +1,72 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /identity
+
+spring:
+  application:
+    name: identity_service
+  datasource:
+    url: jdbc:mysql://localhost:3306/identityDB?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: user
+    password: admin
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        use_sql_comments: true
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 455226230988-bbalrrn0s146ltj1ik0i518662d5niq2.apps.googleusercontent.com
+            client-secret: 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
+            redirect-uri: http://localhost:3000/authentication
+            scope:
+              - openid
+              - email
+              - profile
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+            user-name-attribute: sub
+  kafka:
+    bootstrap-servers: localhost:9094
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  secret: 0gcTg/OwYXF0WVGsXivlCQN/Br6mytavNkLl2nmpm4BoQpIQjVg9uFByLyja1+8E
+  expirationMs: 3600000 # 1 hour 3600000
+  refreshExpirationMs: 604800000 # 7 days
+
+brevo:
+  senderEmail: quankhongmac@gmail.com
+  senderName: hiedev
+  key: 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
+
+eureka:
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 15

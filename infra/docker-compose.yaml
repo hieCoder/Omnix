@@ -1,0 +1,136 @@
+services:
+  # mysql
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: identityDB
+      MYSQL_USER: user
+      MYSQL_PASSWORD: admin
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - microservices-net
+
+  # neo4j
+  neo4j:
+    image: neo4j:latest
+    container_name: neo4j
+    ports:
+      - "7474:7474"  # HTTP (giao diện web)
+      - "7687:7687"  # Bolt (kết nối từ app)
+    environment:
+      NEO4J_AUTH: neo4j/conchimnon001
+    volumes:
+      - neo4j-data:/data
+    networks:
+      - microservices-net
+
+    # kafka
+  kafka:
+    image: 'bitnami/kafka:3.7.0'
+    container_name: kafka
+    hostname: kafka
+    ports:
+      - '9094:9094'
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    networks:
+      - microservices-net
+
+  # redis
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - microservices-net
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
+
+  # elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: elasticsearch
+    ports:
+      - "9200:9200" # Port API Elasticsearch
+      - "9300:9300" # Port giao tiếp giữa các node
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ELASTIC_PASSWORD=conchimnon001  # Mật khẩu cho user "elastic"
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - ./elastic_data:/usr/share/elasticsearch/data
+    networks:
+      - microservices-net
+
+  # Kibana
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: conchimnon001
+    depends_on:
+      - elasticsearch
+    networks:
+      - microservices-net
+
+  # logstash
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.13.4
+    container_name: logstash
+    command: logstash -f /usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - "9600:9600" # Port API Logstash
+      - "5044:5044" # Port nhận dữ liệu từ Filebeat
+    volumes:
+      - ./logstash/logstash.yml:/usr/share/logstash/logstash.yml:ro,z
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro,z
+      - ./logs:/usr/share/logstash/logs:ro,z
+    environment:
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    depends_on:
+      - elasticsearch
+    networks:
+      - microservices-net
+
+  # rabbitmq
+#  rabbitmq:
+#    image: rabbitmq:3-management
+#    container_name: rabbitmq
+#    ports:
+#      - "5672:5672"  # RabbitMQ port
+#      - "15672:15672" # RabbitMQ management UI
+#    environment:
+#      RABBITMQ_DEFAULT_USER: admin
+#      RABBITMQ_DEFAULT_PASS: conchimnon001
+#    depends_on:
+#      - logstash
+#    networks:
+#      - microservices-net
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  neo4j-data:
+  redis-data:
+  elastic_data:

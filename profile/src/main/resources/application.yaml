@@ -1,0 +1,21 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /profile
+spring:
+  application:
+    name: profile_service
+  neo4j:
+    uri: bolt://localhost:7687
+    authentication:
+      username: neo4j
+      password: conchimnon001
+  kafka:
+    bootstrap-servers: localhost:9094
+    consumer:
+      group-id: profile-group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.LongDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
