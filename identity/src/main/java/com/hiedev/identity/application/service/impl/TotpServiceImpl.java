@@ -31,7 +31,9 @@ public class TotpServiceImpl {
     public boolean validateTOTP(String secretKey, String totp) {
         TimeProvider timeProvider = new SystemTimeProvider();
         CodeGenerator codeGenerator = new DefaultCodeGenerator(HashingAlgorithm.SHA1);
-        CodeVerifier verifier = new DefaultCodeVerifier(codeGenerator, timeProvider); // 60 giây, sai lệch 1 step
+        DefaultCodeVerifier verifier = new DefaultCodeVerifier(codeGenerator, timeProvider);
+        verifier.setTimePeriod(30); // Thời gian bước là 30 giây
+        verifier.setAllowedTimePeriodDiscrepancy(1); // Cho phép sai lệch 1 bước thời gian (±30 giây)
         return verifier.isValidCode(secretKey, totp);
     }
 

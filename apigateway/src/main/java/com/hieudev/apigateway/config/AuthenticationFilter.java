@@ -33,7 +33,8 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     @NonFinal
     Set<String> whiteList = Set.of(
-           "/identity/auth/.*"
+           "/identity/auth/.*",
+            "/profile/.*"
     );
 
     @Override

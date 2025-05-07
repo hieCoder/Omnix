@@ -57,7 +57,7 @@ services:
       - redis-data:/data
     networks:
       - microservices-net
-    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
+    command: [ "redis-server", "--appendonly", "yes", "--save", "60", "1000" ]
 
   # elasticsearch
   elasticsearch:
@@ -111,19 +111,35 @@ services:
       - microservices-net
 
   # rabbitmq
-#  rabbitmq:
-#    image: rabbitmq:3-management
-#    container_name: rabbitmq
-#    ports:
-#      - "5672:5672"  # RabbitMQ port
-#      - "15672:15672" # RabbitMQ management UI
-#    environment:
-#      RABBITMQ_DEFAULT_USER: admin
-#      RABBITMQ_DEFAULT_PASS: conchimnon001
-#    depends_on:
-#      - logstash
-#    networks:
-#      - microservices-net
+  #  rabbitmq:
+  #    image: rabbitmq:3-management
+  #    container_name: rabbitmq
+  #    ports:
+  #      - "5672:5672"  # RabbitMQ port
+  #      - "15672:15672" # RabbitMQ management UI
+  #    environment:
+  #      RABBITMQ_DEFAULT_USER: admin
+  #      RABBITMQ_DEFAULT_PASS: conchimnon001
+  #    depends_on:
+  #      - logstash
+  #    networks:
+  #      - microservices-net
+
+  # mongodb
+  mongodb:
+    image: bitnami/mongodb:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGODB_USERNAME=user
+      - MONGODB_PASSWORD=conchimnon001
+      - MONGODB_DATABASE=notification
+      - MONGODB_ROOT_PASSWORD=conchimnon001
+    volumes:
+      - mongodb-data:/bitnami/mongodb
+    networks:
+      - microservices-net
 
 networks:
   microservices-net:
@@ -134,3 +150,4 @@ volumes:
   neo4j-data:
   redis-data:
   elastic_data:
+  mongodb-data:

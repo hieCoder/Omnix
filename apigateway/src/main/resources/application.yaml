@@ -13,8 +13,8 @@ spring:
         locator:
           enabled: true
       routes:
-        - id: identity_service
-          uri: lb://identity
+        - id: identity-service
+          uri: lb://identity-service
           predicates:
             - Path=/identity/**
           metadata:

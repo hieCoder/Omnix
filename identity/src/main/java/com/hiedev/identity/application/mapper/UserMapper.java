@@ -1,7 +1,7 @@
 package com.hiedev.identity.application.mapper;
 
-import com.hiedev.event.dto.ProfileEventDTO;
 import com.hiedev.identity.application.dto.request.CreateUserRequest;
+import com.hiedev.identity.application.dto.request.ProfileRequest;
 import com.hiedev.identity.application.dto.response.GoogleUserInfoResponse;
 import com.hiedev.identity.application.dto.response.UserResponse;
 import com.hiedev.identity.domain.entity.User;
@@ -17,7 +17,7 @@ public interface UserMapper {
     UserResponse toUserResponseDTO(User user);
 
     @Mapping(target = "userId", ignore = true)
-    ProfileEventDTO toUserEventResponseDTO(CreateUserRequest CreateUserRequest);
+    ProfileRequest toUserEventResponseDTO(CreateUserRequest CreateUserRequest);
 
     User toUser(GoogleUserInfoResponse googleUserInfoResponse);
 }

@@ -1,0 +1,30 @@
+server:
+  port: 8082
+  servlet:
+    context-path: /notification
+spring:
+  application:
+    name: notification-service
+  data:
+    mongodb:
+      uri: mongodb://user:conchimnon001@localhost:27017/notification
+      auto-index-creation: true
+  kafka:
+    bootstrap-servers: localhost:9094
+    consumer:
+      group-id: notification-group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+jwt:
+  secret: 0gcTg/OwYXF0WVGsXivlCQN/Br6mytavNkLl2nmpm4BoQpIQjVg9uFByLyja1+8E
+  expirationMs: 3600000 # 1 hour 3600000
+  refreshExpirationMs: 604800000 # 7 days
+
+brevo:
+  senderEmail: quankhongmac@gmail.com
+  senderName: hiedev
+  key: ${BREVO_API_KEY}

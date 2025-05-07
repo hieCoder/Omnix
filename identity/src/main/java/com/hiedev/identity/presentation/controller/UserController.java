@@ -32,13 +32,12 @@ public class UserController {
                 userService.findAllUsers(page, size, sortBy, sortDir)));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserResponse>> findUserById(
-            @PathVariable Long id) {
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> findUserById() {
         return ResponseEntity.ok(ApiResponse.success(
                 HttpStatus.OK,
-                "Get user by id success",
-                userService.findById(id)));
+                "Get user success",
+                userService.getUserDetail()));
     }
 
 }

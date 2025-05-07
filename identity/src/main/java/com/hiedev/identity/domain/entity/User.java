@@ -33,10 +33,6 @@ public class User {
     @Column(nullable = false, unique = true)
     String email;
 
-    String otp;
-    LocalDateTime otpExpiryDate; // Thời gian hết hạn OTP
-    boolean emailVerified; // Trạng thái xác minh email
-
     String password;
 
     @Enumerated(EnumType.STRING)

@@ -1,6 +1,7 @@
 package com.hiedev.identity.application.service.impl;
 
-import com.hiedev.event.dto.ProfileEventDTO;
+import com.hiedev.event.EmailRequest;
+import com.hiedev.event.RecipientRequest;
 import com.hiedev.identity.application.dto.request.*;
 import com.hiedev.identity.application.dto.response.GoogleUserInfoResponse;
 import com.hiedev.identity.application.dto.response.TokenResponse;
@@ -20,7 +21,7 @@ import com.hiedev.identity.domain.enums.UserStatusEnum;
 import com.hiedev.identity.domain.repository.ProviderRepository;
 import com.hiedev.identity.domain.repository.RoleRepository;
 import com.hiedev.identity.domain.repository.UserRepository;
-import com.hiedev.identity.infrastructure.client.openfeign.EmailApiClient;
+import com.hiedev.identity.infrastructure.client.openfeign.ProfileClient;
 import com.hiedev.identity.infrastructure.security.CustomUserDetail;
 import com.hiedev.identity.infrastructure.security.JwtTokenProvider;
 import com.hiedev.identity.presentation.exception.DuplicateException;
@@ -31,9 +32,7 @@ import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -45,7 +44,6 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -61,26 +59,14 @@ public class AuthServiceImpl implements AuthService {
     JwtTokenProvider jwtTokenProvider;
     AuthenticationManager authenticationManager;
     PasswordEncoder passwordEncoder;
-    KafkaTemplate<Long, Object> kafkaTemplate;
+    ProfileClient profileClient;
     ProviderRepository providerRepository;
     GoogleService googleService;
     JwtDecoder jwtDecoder;
     TokenBlackListServiceImpl tokenBlackListServiceImpl;
-    EmailApiClient emailApiClient;
     TotpServiceImpl totpServiceImpl;
     RedisTemplate<String, String> redisTemplate;
-
-    @NonFinal
-    @Value("${brevo.key}")
-    String emailKey;
-
-    @NonFinal
-    @Value("${brevo.senderEmail}")
-    String senderEmail;
-
-    @NonFinal
-    @Value("${brevo.senderName}")
-    String senderName;
+    KafkaTemplate<String, EmailRequest> kafkaTemplate;
 
     String TOTP_KEY_PREFIX = "totp:";
 
@@ -99,9 +85,9 @@ public class AuthServiceImpl implements AuthService {
         user = userRepository.save(user);
 
         // Send a message to Kafka save profile event
-        ProfileEventDTO profileEventDTO = userMapper.toUserEventResponseDTO(createUserRequest);
-        profileEventDTO.setUserId(user.getId());
-        kafkaTemplate.send("user-registration", profileEventDTO);
+        ProfileRequest profileRequest = userMapper.toUserEventResponseDTO(createUserRequest);
+        profileRequest.setUserId(user.getId());
+        profileClient.createProfile(profileRequest);
 
         // Generate TOTP secret key and store it in Redis
         String secretKey = totpServiceImpl.generateSecretKey();
@@ -110,22 +96,22 @@ public class AuthServiceImpl implements AuthService {
         redisTemplate.opsForValue().set(TOTP_KEY_PREFIX + user.getEmail(), secretKey, 300, TimeUnit.SECONDS);
 
         // Send a welcome email
-        SendEmailRequest emailRequest = SendEmailRequest.builder()
-                .sender(SenderRequest.builder().email(senderEmail).name(senderName).build())
-                .to(List.of(RecipientRequest.builder().email(user.getEmail()).name(createUserRequest.getFirstName()).build()))
-                .subject("Welcome to HiDev")
-                .htmlContent("<html><body>" +
-                        "<h1>Chào mừng đến với HiDev</h1>" +
+        EmailRequest emailRequest = EmailRequest.builder()
+                .to(RecipientRequest.builder().email(user.getEmail()).name(createUserRequest.getFirstName()).build())
+                .subject("Welcome to HieDev")
+                .htmlContent("<h1>Chào mừng đến với HieDev</h1>" +
                         "<p>Hi " + createUserRequest.getFirstName() + ",</p>" +
                         "<p>Cảm ơn bạn đã đăng ký! Đây là mã OTP của bạn để xác nhận tài khoản:</p>" +
                         "<h2>" + toptCode + "</h2>" +
-                        "<p>Mã này có hiệu lực trong 5 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>" +
-                        "</body></html>")
+                        "<p>Mã này có hiệu lực trong 5 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>")
                 .build();
-        emailApiClient.sendEmail(emailKey, emailRequest);
+        kafkaTemplate.send("user-registration", emailRequest);
 
         log.info("Welcome email sent to {}", user.getEmail());
-        return userMapper.toUserResponseDTO(user);
+        UserResponse userResponse = userMapper.toUserResponseDTO(user);
+        userResponse.setFirstName(createUserRequest.getFirstName());
+        userResponse.setLastName(createUserRequest.getLastName());
+        return userResponse;
     }
 
     @Override
@@ -156,11 +142,12 @@ public class AuthServiceImpl implements AuthService {
                     .build();
 
             // Send a message to Kafka save profile event
-            kafkaTemplate.send("user-registration", ProfileEventDTO.builder()
+            profileClient.createProfile(ProfileRequest.builder()
                     .userId(newUser.getId())
                     .lastName(googleUserInfoResponse.getFamilyName())
                     .firstName(googleUserInfoResponse.getGivenName())
                     .build());
+
             return userRepository.save(newUser);
         });
 
