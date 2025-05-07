@@ -1,4 +1,4 @@
-package com.hiedev.notification.dto.request;
+package com.hiedev.event;
 
 import lombok.AccessLevel;
 import lombok.Getter;

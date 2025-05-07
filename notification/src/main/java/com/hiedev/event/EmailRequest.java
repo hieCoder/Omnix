@@ -1,6 +1,5 @@
 package com.hiedev.event;
 
-import com.hiedev.notification.dto.request.RecipientRequest;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
